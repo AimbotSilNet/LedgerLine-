@@ -4,10 +4,10 @@ Do this on your Mac, in the browser. Allow about 45 minutes, plus however long P
 Secrets only ever go into the Supabase dashboard. Never paste them into chat, and never put them in `config.js`.
 
 What's in this folder:
-- `app/` is the website your iPhone opens. It's the Ledgerline app plus `shim.js`, which connects it to Supabase and Plaid.
+- `app/` is the website your iPhone opens. It's the Ledgerline app plus `shim.js`, which connects it to Supabase, Plaid and Claude.
 - `supabase/1-schema.sql` sets up the database tables (DATA.md).
 - `supabase/2-daily-sync.sql` turns on a bank sync every 6 hours.
-- `supabase/functions/` holds the three server functions: `plaid`, `plaid-webhook` and `prices`.
+- `supabase/functions/` holds the four server functions: `plaid`, `plaid-webhook`, `prices` and `ai`.
 
 ## 1. Supabase project (10 min)
 1. Go to **supabase.com** → **New project**.
@@ -33,19 +33,29 @@ What's in this folder:
 
 You don't need a redirect URI, because Canadian banks don't use OAuth in Plaid.
 
+### Claude API key (5 min)
+This powers the written Analysis, Ask, reading PDF statements and "sort with AI". It's billed per use by Anthropic, separately from a Claude subscription.
+1. Go to **console.anthropic.com** and sign up or sign in.
+2. Go to **Billing** and add a small amount of credit.
+3. Go to **Settings** → **Limits** and set a monthly spend limit you're comfortable with, so costs can't run away.
+4. Go to **API Keys** → **Create Key**, name it `Ledgerline`, and copy it. It's shown only once, and you'll paste it in step 3.
+
+If you'd rather skip Claude, set `claude: false` in `app/config.js` and leave out the `ai` function.
+
 ## 3. Server functions (10 min)
-Do this in Supabase → **Edge Functions**, three times:
+Do this in Supabase → **Edge Functions**, four times:
 1. Click **Deploy a new function** → **Via Editor**.
 2. Name it `plaid`. Delete the sample code, paste all of `supabase/functions/plaid/index.ts`, then click **Deploy**.
-3. Do the same for `plaid-webhook` (with `functions/plaid-webhook/index.ts`) and `prices` (with `functions/prices/index.ts`).
+3. Do the same for `plaid-webhook`, `prices` and `ai`, each with its own `index.ts` from `supabase/functions/`.
 4. Open each function's **Details** and set **Verify JWT** (also called *Enforce JWT verification*):
    - `plaid`: **OFF**
    - `plaid-webhook`: **OFF**
    - `prices`: **ON**
+   - `ai`: **ON**
 
    `plaid` checks your sign-in itself. Plaid's own calls to `plaid-webhook` can't carry a Supabase sign-in.
 
-Then go to **Edge Functions** → **Secrets** and add these five:
+Then go to **Edge Functions** → **Secrets** and add these six:
 
 | Name | Value |
 |---|---|
@@ -54,6 +64,7 @@ Then go to **Edge Functions** → **Secrets** and add these five:
 | `PLAID_ENV` | `production` |
 | `CRON_SECRET` | any long random text, e.g. 40 random letters and numbers. Keep a copy for step 4. |
 | `ALPHAVANTAGE_KEY` | your free key from alphavantage.co |
+| `ANTHROPIC_API_KEY` | the Claude API key from step 2 |
 
 ## 4. Background sync (2 min)
 1. Open `supabase/2-daily-sync.sql` and replace the two placeholders:
@@ -96,7 +107,7 @@ For a brokerage, use **+ Add investment account** → **Connect with bank**. Pla
 After this, new activity arrives on its own: Plaid notifies the server as it happens, and the 6-hourly sync is the backup. Opening the app or tapping refresh also syncs.
 
 ## Good to know
-- **Claude-only:** the written Analysis, Ask and reading PDF statements only work in the Claude version. CSV statement upload works on the phone.
+- **Claude on the phone:** the Insights tab writes the day's Analysis the first time you open it each day. Ask, PDF statements and "sort with AI" run only when you tap them. Each one is a small charge on your Anthropic account. When you ask, your server sends Claude a summary of your accounts, holdings and recent transactions; nothing else gets it.
 - **Alpha Vantage's free key allows 25 requests a day.** The app refreshes prices at most every 4 hours. With many tickers, some days the limit runs out and prices update the next day.
 - **Free Supabase projects pause after about a week with no use.** Opening the app keeps it awake. If it ever pauses, click **Restore** in the Supabase dashboard.
 - **If a bank needs you to sign in again,** a banner appears on Worth with **Reconnect**.

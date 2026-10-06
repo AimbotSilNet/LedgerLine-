@@ -13,6 +13,7 @@ Five tabs, each leading with exactly one number:
 - **Income**: expected dividend income for the year, month by month, with who pays and when.
 - **Budget**: what this month has cost against budget and against the same days last month. It covers categories, statement upload, voice entry and the transaction list.
 - **Insights**: health checks such as concentration, idle cash, card utilization, stale balances, drop from peak and overspending. Each one states the figure it rests on and the limit it's measured against.
+  Above them, Claude writes a short daily analysis of what moved and why, and an Ask box answers questions from your own numbers. It describes and never advises.
 
 The app **describes and never recommends**. There are no "you should" suggestions, goals, streaks or badges. It shows what changed, what's worth a look, and the numbers behind both. Detail is always one tap below the summary.
 
@@ -55,9 +56,10 @@ It's built to feel at home when launched from the Home Screen.
 ```
 iPhone (Home Screen web app)  ──►  Supabase (Postgres + Edge Functions)  ──►  Plaid (banks)
          app/                        supabase/                               Alpha Vantage (prices)
+                                                                              Claude (analysis)
 ```
 
-- **`app/`** is the site, served by Netlify. `index.html` is the whole app in one file, the same file that also runs as a Claude artifact. `shim.js` connects it to Supabase: sign-in, live data, bank connections and prices.
+- **`app/`** is the site, served by Netlify. `index.html` is the whole app in one file, the same file that also runs as a Claude artifact. `shim.js` connects it to Supabase: sign-in, live data, bank connections, prices and Claude.
 - **`supabase/1-schema.sql`** creates the tables (accounts, balances, transactions, holdings, trades, documents). Row-level security means every row is readable only by its owner.
 - **`supabase/functions/plaid`** handles bank connections and syncing:
   - connects banks and imports balances, transactions, holdings and trades
@@ -65,6 +67,7 @@ iPhone (Home Screen web app)  ──►  Supabase (Postgres + Edge Functions)  �
   - upgrades a pending transaction to its posted version without duplicating it
 - **`supabase/functions/plaid-webhook`** receives Plaid's "new activity" notices.
 - **`supabase/functions/prices`** keeps the Alpha Vantage key on the server.
+- **`supabase/functions/ai`** passes the app's Claude requests (the daily Analysis, Ask, reading PDF statements, sorting uncategorized spending) to Anthropic's API, so the API key stays on the server.
 - **`supabase/2-daily-sync.sql`** runs a background sync every six hours.
 - **`SETUP.md`** walks through the whole setup in the browser, about 45 minutes.
 
@@ -73,5 +76,5 @@ iPhone (Home Screen web app)  ──►  Supabase (Postgres + Edge Functions)  �
 There's no financial data and no secrets in this repository.
 - `app/config.js` holds only the Supabase project URL and anon key, which are meant to be public: they only work for the signed-in owner's own rows.
 - Bank access tokens live in a table the app itself can never read.
-- The Plaid, Alpha Vantage and cron secrets live in Supabase's secret store.
+- The Plaid, Alpha Vantage, Anthropic and cron secrets live in Supabase's secret store.
 - Backups, spreadsheets and statements are kept out of the repo by `.gitignore`.

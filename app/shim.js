@@ -5,7 +5,8 @@
  *   - maps the app's documents onto the tables in DATA.md and keeps them live,
  *   - exposes window.ledgerline.plaid for bank connections (Plaid Link + the `plaid` server function),
  *   - routes live prices through the `prices` server function.
- * Claude-only features (the written analysis, Ask, reading PDFs) stay off here, as PRODUCT.md says. */
+ *   - routes the app's Claude requests (Analysis, Ask, reading PDFs, sort with AI) through the `ai` server function.
+ * Set `claude: false` in config.js to turn the Claude features off. */
 (() => {
   "use strict";
   const CFG = window.LEDGERLINE_CONFIG || {};
@@ -257,7 +258,51 @@
       return { payload: data };
     },
   };
-  const permissions = { state: async n => String(n).startsWith("mcp:") ? "granted" : "denied" };
+  // ---------- Claude (the `ai` function, which holds your Anthropic API key) ----------
+  async function aiFetch(body) {
+    const { data } = await sb.auth.getSession();
+    const r = await fetch(`${CFG.supabaseUrl}/functions/v1/ai`, { method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token || ""}`, apikey: CFG.supabaseAnonKey }, body: JSON.stringify(body) });
+    if (!r.ok) {
+      let e = {}; try { e = await r.json(); } catch (_) {}
+      throw { code: r.status === 429 ? "rate_limited" : r.status === 401 || r.status === 403 ? "not_granted" : e.type || "ai_error",
+        message: r.status === 404 ? "Claude isn't set up yet: deploy the ai function (SETUP.md, step 3)." : e.error || e.msg || "Claude didn't answer. Try again." };
+    }
+    return r;
+  }
+  const toMessages = p => typeof p === "string" ? [{ role: "user", content: p }] : (p || []).map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "") }));
+  // streamed answer: the app shows the words as they arrive through opts.onText({text})
+  async function sample(prompt, opts = {}) {
+    const r = await aiFetch({ messages: toMessages(prompt), tier: opts.modelTier, stream: true });
+    const reader = r.body.getReader(), dec = new TextDecoder(); let buf = "", text = "";
+    for (;;) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i; while ((i = buf.indexOf("\n\n")) >= 0) {
+        const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
+        for (const line of chunk.split("\n")) {
+          if (!line.startsWith("data:")) continue;
+          let ev; try { ev = JSON.parse(line.slice(5).trim()); } catch (_) { continue; }
+          if (ev.type === "content_block_delta" && ev.delta?.type === "text_delta") { text += ev.delta.text; opts.onText?.({ text }); }
+          else if (ev.type === "error") throw { code: ev.error?.type === "overloaded_error" ? "rate_limited" : "ai_error", message: ev.error?.message || "Claude stopped partway. Try again." };
+        }
+      }
+    }
+    return { text };
+  }
+  // structured answer: the app asks for JSON (reading statements, sorting categories, voice entry)
+  sample.json = async (prompt, opts = {}) => {
+    const r = await aiFetch({ messages: toMessages(prompt), tier: opts.modelTier, json: true });
+    const out = await r.json(), txt = (out.content || []).map(c => c.text || "").join("").trim();
+    const body = txt.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+    try { return JSON.parse(body); } catch (_) {}
+    const a = body.indexOf("{"), z = body.lastIndexOf("}");
+    if (a >= 0 && z > a) { try { return JSON.parse(body.slice(a, z + 1)); } catch (_) {} }
+    throw { code: "ai_error", message: "Claude's answer couldn't be read. Try again." };
+  };
+  sample.limits = async () => ({ maxPromptBytes: 180000 });
+  const claudeOn = CFG.claude !== false;
+  const permissions = { state: async n => String(n).startsWith("mcp:") || (n === "sample" && claudeOn) ? "granted" : "denied" };
   const downloads = {
     async save({ filename, data }) {
       const file = new File([data], filename, { type: "application/json" });
@@ -273,7 +318,8 @@
       if (name === "mcp") return mcp;
       if (name === "permissions") return permissions;
       if (name === "downloads") return downloads;
-      throw new Error(name + " works in the Claude version only");   // sample: analysis and Ask stay in Claude
+      if (name === "sample" && claudeOn) return sample;
+      throw new Error(name + " isn't available here");
     },
   };
 
