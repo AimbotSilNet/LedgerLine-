@@ -1,0 +1,13 @@
+# Your money data and secrets never go in this repo
+*.json
+!app/manifest.webmanifest
+*.xlsx
+*.xls
+*.csv
+*.pdf
+*.bas
+.env*
+*.key
+# a filled-in copy of the cron SQL (keep the placeholder version tracked)
+supabase/*-filled.sql
+.DS_Store

@@ -1,0 +1,12 @@
+/*
+  X-Robots-Tag: noindex, nofollow
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  Permissions-Policy: camera=(), geolocation=(), microphone=(self)
+/config.js
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/shim.js
+  Cache-Control: no-cache
