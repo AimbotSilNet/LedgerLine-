@@ -107,7 +107,7 @@ For a brokerage, use **+ Add investment account** → **Connect with bank**. Pla
 After this, new activity arrives on its own: Plaid notifies the server as it happens, and the 6-hourly sync is the backup. Opening the app or tapping refresh also syncs.
 
 ## Good to know
-- **Claude on the phone:** the Insights tab writes the day's Analysis the first time you open it each day. Ask, PDF statements and "sort with AI" run only when you tap them. Each one is a small charge on your Anthropic account. When you ask, your server sends Claude a summary of your accounts, holdings and recent transactions; nothing else gets it.
+- **Claude on the phone:** Claude only runs when you tap something: **Generate summary** on the Insights tab, Ask, PDF statements and "sort with AI". Each one is a small charge on your Anthropic account. When you ask, your server sends Claude a summary of your accounts, holdings and recent transactions; nothing else gets it.
 - **Alpha Vantage's free key allows 25 requests a day.** The app refreshes prices at most every 4 hours. With many tickers, some days the limit runs out and prices update the next day.
 - **Free Supabase projects pause after about a week with no use.** Opening the app keeps it awake. If it ever pauses, click **Restore** in the Supabase dashboard.
 - **If a bank needs you to sign in again,** a banner appears on Worth with **Reconnect**.

@@ -13,7 +13,7 @@ Five tabs, each leading with exactly one number:
 - **Income**: expected dividend income for the year, month by month, with who pays and when.
 - **Budget**: what this month has cost against budget and against the same days last month. It covers categories, statement upload, voice entry and the transaction list.
 - **Insights**: health checks such as concentration, idle cash, card utilization, stale balances, drop from peak and overspending. Each one states the figure it rests on and the limit it's measured against.
-  Above them, Claude writes a short daily analysis of what moved and why, and an Ask box answers questions from your own numbers. It describes and never advises.
+  Above them, a **Generate summary** button has Claude write a short analysis of what moved and why, and an Ask box answers questions from your own numbers. It describes and never advises.
 
 The app **describes and never recommends**. There are no "you should" suggestions, goals, streaks or badges. It shows what changed, what's worth a look, and the numbers behind both. Detail is always one tap below the summary.
 

@@ -1906,10 +1906,10 @@ function vInsights(M){
   const toChecks=nA||nW?`<button class="tochecks" data-act="toChecks">${[nA?`${nA} alert${nA>1?"s":""}`:"",nW?`${nW} watch item${nW>1?"s":""}`:""].filter(Boolean).join(" and ")} in the checks below<span aria-hidden="true">↓</span></button>`:"";
   const brief=`<section class="panel"><div class="ph"><h2>Analysis</h2><span class="aside">${b?.date?esc(dShort(b.date)):""}</span></div>
     ${!S.sample&&b?.text?`<div class="ai-text">${mdLite(b.text)}</div>${toChecks}<div class="note" style="margin-top:8px">Sample analysis. In the real app Claude writes this from your own numbers each day, describing what moved and never advising.</div>`
-      : !S.sample?`<div class="note">The analysis works when you open this page from your Claude account.</div>`
-      : S.briefBusy?`<div class="ai-text busy" id="briefOut">${b?.live?mdLite(b.live):`<span class="mut">Reading your numbers…</span>`}</div>`
-      : b?.text?`<div class="ai-text">${mdLite(b.text)}</div>${toChecks}<div class="bar" style="margin-top:8px"><span class="note grow">Written from today's data. Analysis, not financial advice.</span><button class="btn sm" data-act="brief">Rewrite</button></div>`
-      : `<div class="note" style="margin-bottom:8px">A short written read of your net worth, spending and risk checks, refreshed daily.</div><button class="btn pri sm" data-act="brief">Write today's analysis</button>`}
+      : !S.sample?`<div class="note">Generate summary needs Claude, which isn't connected here.</div>`
+      : S.briefBusy?`<div class="ai-text busy" id="briefOut">${b?.live?mdLite(b.live):`<span class="mut">Reading your numbers…</span>`}</div><button class="btn sm" disabled style="margin-top:8px">Generating…</button>`
+      : b?.text?`<div class="ai-text">${mdLite(b.text)}</div>${toChecks}<div class="bar" style="margin-top:8px"><span class="note grow">${b.date===today?"Written from today's data":`Written ${esc(dShort(b.date))}`}. Analysis, not financial advice.</span><button class="btn sm" data-act="brief">Generate summary</button></div>`
+      : `<div class="note" style="margin-bottom:8px">A short written read of your net worth, spending and risk checks. Claude writes it from your numbers when you ask.</div><button class="btn pri sm" data-act="brief">Generate summary</button>`}
   </section>`;
   const chips=["Why did my net worth change this month?","Which categories grew most since last month?","How concentrated is my portfolio?","How much dividend income is left this year?","What subscriptions am I paying for?"];
   const ask=`<section class="panel"><div class="ph"><h2>Ask</h2><span class="aside">uses your data</span></div>
@@ -2416,7 +2416,7 @@ async function setCategory(id,cat){
 }
 
 // ================= events =================
-document.querySelector("nav.tabs").addEventListener("click",e=>{ const b=e.target.closest("[data-tab]"); if(!b) return; const fromTab=S.tab; if(S.tab===b.dataset.tab&&b.dataset.tab==="portfolio") S.pf.acct=null; S.tab=b.dataset.tab; galleon?.sail(fromTab,S.tab); try{localStorage.setItem("ll_tab",S.tab)}catch(_){ } window.scrollTo({top:0}); render(); setTimeout(()=>lake?.title(.55),140); if(S.tab==="insights") maybeAutoBrief(); });
+document.querySelector("nav.tabs").addEventListener("click",e=>{ const b=e.target.closest("[data-tab]"); if(!b) return; const fromTab=S.tab; if(S.tab===b.dataset.tab&&b.dataset.tab==="portfolio") S.pf.acct=null; S.tab=b.dataset.tab; galleon?.sail(fromTab,S.tab); try{localStorage.setItem("ll_tab",S.tab)}catch(_){ } window.scrollTo({top:0}); render(); setTimeout(()=>lake?.title(.55),140); });
 document.addEventListener("keydown",e=>{ if(e.key==="Enter"&&e.target?.id==="sSay"){ e.preventDefault(); const v=e.target.value.trim(); if(v) fillFromSpeech(v); } });
 document.addEventListener("change",e=>{ if(e.target?.id==="sSay"){ const v=e.target.value.trim(); if(v&&v!==S.voice?.text) fillFromSpeech(v); } });
 function fabRipple(out){ const fab=$("#fab"); if(!fab||fab.hidden||!motionOK()) return; const r=fab.getBoundingClientRect(), ring=document.createElement("div"); ring.className="fabring"+(out?" out":""); ring.style.left=(r.left+r.width/2)+"px"; ring.style.top=(r.top+r.height/2)+"px"; ring.innerHTML="<i></i><i></i><i></i>";
@@ -2593,9 +2593,7 @@ async function afterReady(){
     const dAge = Object.values(S.divs).map(x=>x.at).sort()[0];
     if (!dAge || daysBetween(dAge,today)>7) syncDividends(false);
   }
-  if (S.tab==="insights") maybeAutoBrief();
 }
-async function maybeAutoBrief(){ if (S.dbState==="ready" && S.sample && !S.briefBusy && S.brief?.date!==today && await granted("sample")) writeBrief(); }
 })();
 </script>
 </body>
